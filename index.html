@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="TMCZ Acces" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>TMCZ Acces</title>
+  <style>
+    :root { --magenta:#E20074; --light:#eeeeee; --text:#111; --border:#ddd; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { margin:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; background:#fff; color:var(--text); }
+    body { padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom); display:flex; justify-content:center; align-items:center; }
+    .app { width:100%; max-width:430px; min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:18px 4px; }
+    .card { width:100%; padding:18px; border-radius:22px; background:#fff; }
+    .logo { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; user-select:none; }
+    .logo-symbol { width:108px; height:72px; position:relative; color:var(--magenta); font-weight:900; font-size:64px; line-height:72px; text-align:center; letter-spacing:-4px; }
+    .logo-symbol::before,.logo-symbol::after { content:""; position:absolute; top:28px; width:12px; height:12px; border-radius:3px; background:var(--magenta); }
+    .logo-symbol::before { left:10px; } .logo-symbol::after { right:10px; }
+    .logo-text { margin-top:0; font-size:24px; line-height:1; color:var(--magenta); font-weight:800; }
+    .toggle { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    button { width:100%; border:0; border-radius:12px; min-height:58px; font-size:18px; font-weight:700; cursor:pointer; touch-action:manipulation; }
+    .type-btn { background:var(--light); color:#111; }
+    .type-btn.active { background:var(--magenta); color:#fff; }
+    input { width:100%; min-height:58px; margin:7px 0; padding:0 14px; border:1px solid var(--border); border-radius:12px; font-size:18px; background:#fff; color:#111; outline:none; }
+    input:focus { border-color:var(--magenta); box-shadow:0 0 0 2px rgba(226,0,116,.12); }
+    .quick { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .quick button { background:var(--light); color:#111; font-size:16px; font-weight:700; min-height:54px; }
+    .send { margin-top:34px; background:var(--magenta); color:#fff; min-height:66px; font-size:20px; border-radius:14px; }
+    .hint { margin-top:14px; text-align:center; color:#666; font-size:13px; line-height:1.35; }
+    .preview { margin-top:14px; padding:12px; border-radius:12px; background:#f7f7f7; color:#333; font-size:14px; word-break:break-word; min-height:42px; }
+    @media (max-height:620px) {
+      body { align-items:flex-start; }
+      .app { justify-content:flex-start; }
+      .logo { margin-bottom:12px; }
+      .logo-symbol { transform:scale(.82); height:56px; }
+      .logo-text { font-size:20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <div class="logo" aria-label="TMCZ Acces">
+        <div class="logo-symbol">T</div>
+        <div class="logo-text">Acces</div>
+      </div>
+
+      <div class="toggle">
+        <button id="btnInc" class="type-btn active" type="button">VSTUP</button>
+        <button id="btnOut" class="type-btn" type="button">ODCHOD</button>
+      </div>
+
+      <input id="tech" type="text" autocomplete="name" autocapitalize="characters" placeholder="Jméno technika" />
+      <input id="site" type="text" inputmode="numeric" autocomplete="off" placeholder="Site ID" />
+      <input id="reason" type="text" autocomplete="off" placeholder="Důvod" />
+
+      <div class="quick">
+        <button type="button" data-reason="ACQ">ACQ</button>
+        <button type="button" data-reason="Kontrola">Kontrola</button>
+        <button type="button" data-reason="Měření">Měření</button>
+        <button type="button" data-reason="Servis">Servis</button>
+        <button type="button" data-reason="Instalace">Instalace</button>
+      </div>
+
+      <button id="send" class="send" type="button">PŘIPRAVIT SMS</button>
+      <div id="preview" class="preview">SMS: INC</div>
+      <div class="hint">iPhone SMS sám neodešle. Aplikace otevře Zprávy s připraveným číslem a textem.</div>
+    </section>
+  </main>
+
+  <script>
+    const SMS_NUMBER = "736303550";
+    let selectedType = "INC";
+    const btnInc = document.getElementById("btnInc");
+    const btnOut = document.getElementById("btnOut");
+    const tech = document.getElementById("tech");
+    const site = document.getElementById("site");
+    const reason = document.getElementById("reason");
+    const preview = document.getElementById("preview");
+    const send = document.getElementById("send");
+
+    tech.value = localStorage.getItem("tmcz_tech") || "";
+
+    function setType(type) {
+      selectedType = type;
+      btnInc.classList.toggle("active", type === "INC");
+      btnOut.classList.toggle("active", type === "OUT");
+      updatePreview();
+    }
+
+    function buildMessage() {
+      return [selectedType, tech.value.trim(), site.value.trim(), reason.value.trim()].filter(Boolean).join(" ");
+    }
+
+    function updatePreview() {
+      preview.textContent = "SMS: " + buildMessage();
+    }
+
+    btnInc.addEventListener("click", () => setType("INC"));
+    btnOut.addEventListener("click", () => setType("OUT"));
+
+    document.querySelectorAll("[data-reason]").forEach(button => {
+      button.addEventListener("click", () => {
+        reason.value = button.dataset.reason;
+        updatePreview();
+      });
+    });
+
+    [tech, site, reason].forEach(el => el.addEventListener("input", updatePreview));
+
+    send.addEventListener("click", () => {
+      const technician = tech.value.trim();
+      const siteId = site.value.trim();
+      const reasonText = reason.value.trim();
+
+      if (!technician || !siteId || !reasonText) {
+        alert("Vyplň jméno technika, Site ID a důvod.");
+        return;
+      }
+
+      localStorage.setItem("tmcz_tech", technician);
+      const msg = buildMessage();
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const separator = isIOS ? "&" : "?";
+      window.location.href = "sms:" + SMS_NUMBER + separator + "body=" + encodeURIComponent(msg);
+    });
+
+    updatePreview();
+  </script>
+</body>
+</html>
